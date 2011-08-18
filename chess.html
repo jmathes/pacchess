@@ -97,7 +97,7 @@ Board = function(board_div) {
                       })
                     .css({'background-color': color,
                       'background-position': (this._get_img_pos(y, x)),
-                      'background-image': 'url("chesspieces_sprite.png")',
+                      'background-image': 'url("http://www.hackthefuture.org/static/images/chesspieces_sprite.png")',
                       'height': '40px',
                       'width': '40px'
                      })
@@ -215,7 +215,7 @@ Board = function(board_div) {
                 console.log("Square not on straight line from piece");
                 return false;
             }
-            if(walk[0] == end[0] && walk[1] == end[1]) {
+            if(walk[move_type] == end[move_type]) {
                 return true;
             }
             if(this.in_square(walk) != null) {
