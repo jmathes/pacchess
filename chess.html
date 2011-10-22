@@ -1,25 +1,19 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <html><head>
-<title>Unfinished Chess</title>
+<title>Pac-Chess</title>
 </head>
 <body>
-<h1>Unfinished Chess</h1>
+<h1>Pac-Chess</h1>
 <div id="board" style="float:left;">
 </div>
 <div style="float:left; margin:20px;">
-    <h3>This game of chess is unfinished!</h3>
+    <h3>This game of chess is wraps around horizontally!</h3>
     <ul>
-        <li>You can't castle</li>
-        <li>You can't capture "en passant" (don't worry if you don't know what that means)</li>
-        <li>There's no such thing as being in check</li>
-        <li>You win when you capturing the enemy king</li>
-    </ul>
-    <h3>Instead of finishing it, let's hack it!</h3>
-    <ul>
-        <li>Can you make white start with all queens?</li>
-        <li>Can you make black go first?</li>
-        <li>Can you make knights move like bishops?</li>
-        <li>Think of something else fun to try</li>
+        <li>Click on a piece then click where you want to move it</li>
+        <li>You can go off the left edge and come in on the right and vice versa</li>
+        <li>But it doesn't work top-to-bottom. Yes, everyone thought of that and you're right the game would end instantly.</li>
+        <li>You win when you capturing the enemy king. There's no check</li>
+        <li>There's no castling or en passant</li>
     </ul>
 </div>
 
@@ -38,11 +32,23 @@ Board = function(board_div) {
                         [null, null, null, null, null, null, null, null],
                         ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
                         ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']];
+        this.white_king_moved = false;
+        this.black_king_moved = false;
+        this.white_left_rook_moved = false;
+        this.black_left_rook_moved = false;
+        this.white_right_rook_moved = false;
+        this.black_right_rook_moved = false;
         this.draw();
     };
     
     this.in_square = function(square) {
-        return this.squares[square[1]][square[0]];
+        var safe_square = [square[0], square[1]];
+        this.fix_square(safe_square);
+        if(safe_square[1] > 7 || safe_square[1] < 0) {
+            alert("I don't know what's off the top or the bottom of the board");
+            return null;
+        }
+        return this.squares[safe_square[1]][safe_square[0]];
     };
 
     this._get_img_pos = function(y, x) {
@@ -154,79 +160,84 @@ Board = function(board_div) {
     };
     
     this.is_bishop_move_allowed = function(start, end) {
-        var x_direction = 1;
-        if (start[0] > end[0]) {
-            x_direction = -1;
-        }
-        var y_direction = 1;
-        if (start[1] > end[1]) {
-            y_direction = -1;
-        }
         var walk = [start[0], start[1]];
-        while(true) {
-            walk[0] = walk[0] + x_direction;
-            walk[1] = walk[1] + y_direction;
-            if(walk[0] < 0 || walk[0] > 7 || walk[1] < 0 || walk[1] > 7) {
-                console.log("Square not on diagonal line from piece");
-                return false;
-            }
-            if(walk[0] == end[0] && walk[1] == end[1]) {
-                return true;
-            }
-            if(this.in_square(walk) != null) {
-                console.log("Path blocked");
-                return false;
+        for(var dx=-1; dx<2; dx+=2) {
+            for(var dy=-1; dy<2; dy+=2) {
+                walk = [start[0], start[1]];
+                while(true) {
+                    walk[0] += dx;
+                    walk[1] += dy;
+                    this.fix_square(walk);
+                    if(walk[0] == end[0] && walk[1] == end[1]) {
+                        return true;
+                    }
+                    if(walk[0] > 7) {
+                        walk[0] == 0;
+                    }
+                    if(walk[0] < 0) {
+                        walk[0] == 7;
+                    }
+                    if (Math.abs(walk[1]) % 8 != walk[1]) {
+                        break;
+                    }
+                    if (this.in_square(walk) != null) {
+                        break;
+                    }
+                }
             }
         }
+        return false;
     };
-    
+    this.fix_square = function(square) {
+        if(square[0] < 0) {
+            square[0] += 8;
+        }
+        square[0] %= 8;
+    };
     this.is_rook_move_allowed = function(start, end) {
         if (start[0] != end[0] && start[1] != end[1]) {
             console.log("Rooks can only move in straight lines");
             return false;
         }
-        var direction = 0;
-        var move_type = 0;
-        if (start[0] < end[0]) {
-            direction = 1;
-            move_type = 0;
-        }
-        if (start[0] > end[0]) {
-            direction = -1;
-            move_type = 0;
-        }
-        if (start[1] < end[1]) {
-            direction = 1;
-            var move_type = 1;
-        }
-        if (start[1] > end[1]) {
-            direction = -1;
-            move_type = 1;
-        }
         var walk = [start[0], start[1]];
-        while(true) {
-            walk[move_type] = walk[move_type] + direction;
-            if(walk[move_type] < 0 || walk[move_type] > 7) {
-                console.log("Square not on straight line from piece");
-                return false;
-            }
-            if(walk[move_type] == end[move_type]) {
-                return true;
-            }
-            if(this.in_square(walk) != null) {
-                console.log("Path blocked");
-                return false;
+        for(var direction=-1; direction<2; direction+=2) {
+            for(var dimension=0; dimension<2; dimension++) {
+                walk = [start[0], start[1]];
+                while(true) {
+                    
+                    walk[dimension] += direction;
+                    this.fix_square(walk);
+                    if(walk[0] == end[0] && walk[1] == end[1]) {
+                        return true;
+                    }
+                    if(walk[0] > 7) {
+                        walk[0] == 0;
+                    }
+                    if(walk[0] < 0) {
+                        walk[0] == 7;
+                    }
+                    if (Math.abs(walk[1]) % 8 != walk[1]) {
+                        break;
+                    }
+                    if (this.in_square(walk) != null) {
+                        break;
+                    }
+                    if(walk[dimension] == start[dimension]) {
+                        break;
+                    }
+                }
             }
         }
+        return false;
     };
     
     this.is_knight_move_allowed = function(start, end) {
         var distance_x = Math.abs(start[0] - end[0]);
         var distance_y = Math.abs(start[1] - end[1]);
-        if(distance_x == 1 && distance_y == 2) {
+        if((distance_x == 1 || distance_x == 7) && distance_y == 2) {
             return true;
         }
-        if(distance_x == 2 && distance_y == 1) {
+        if((distance_x == 2 || distance_x == 6) && distance_y == 1) {
             return true;
         }
         return false;
@@ -235,7 +246,7 @@ Board = function(board_div) {
     this.is_king_move_allowed = function(start, end) {
         var distance_x = Math.abs(start[0] - end[0]);
         var distance_y = Math.abs(start[1] - end[1]);
-        return (distance_x <= 1 && distance_y <= 1);
+        return ((distance_x <= 1 || distance_x == 7) && distance_y <= 1);
     };
     
     this.is_pawn_move_allowed = function(start, end) {
@@ -244,7 +255,7 @@ Board = function(board_div) {
             direction = 1;
         }
         if(start[0] == end[0] && this.in_square(end) != null) {
-            console.log("Pawns can't capture when moving forward")
+            console.log("Pawns can't capture when moving straight forward")
             return false;
         }
         if(this.whos_turn == 'b' && start[1] == 1 && end[1] == 3 && start[0] == end[0] && this.in_square([start[0], start[1] + direction]) == null) {
@@ -259,7 +270,8 @@ Board = function(board_div) {
             console.log("Pawns can't move that far");
             return false;
         }
-        if(Math.abs(end[0] - start[0]) == 1) {
+        h_dist = Math.abs(end[0] - start[0]);
+        if(h_dist == 1 || h_dist == 7) {
             console.log("Trying to do a pawn capture");
             return this.in_square(end) != null;
         }
@@ -274,6 +286,26 @@ Board = function(board_div) {
                 alert("You win!");
                 this.reset();
                 return;
+            }
+                this.white_right_rook_moved = false;
+                this.black_right_rook_moved = false;
+            if(start[0] == 7 && start[1] == 4) {
+                this.white_king_moved = true;
+            }
+            if(start[0] == 0 && start[1] == 4) {
+                this.black_king_moved = true;
+            }
+            if(start[0] == 7 && start[1] == 0) {
+                this.white_left_rook_moved = true;
+            }
+            if(start[0] == 0 && start[1] == 0) {
+                this.black_left_rook_moved = true;
+            }
+            if(start[0] == 7 && start[1] == 7) {
+                this.white_right_rook_moved = true;
+            }
+            if(start[0] == 0 && start[1] == 7) {
+                this.black_right_rook_moved = true;
             }
             this.squares[end[1]][end[0]] = this.squares[start[1]][start[0]];
             this.squares[start[1]][start[0]] = null;
